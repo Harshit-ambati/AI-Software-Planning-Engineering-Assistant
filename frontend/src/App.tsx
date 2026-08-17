@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Activity, Boxes, FileCheck2, GitBranch, Loader2, ShieldCheck } from "lucide-react";
 import { ArtifactPanel } from "./components/ArtifactPanel";
+import { ProjectHistory } from "./components/ProjectHistory";
 import { WorkflowBoard } from "./components/WorkflowBoard";
-import { generateBlueprint } from "./lib/api";
-import type { ArtifactPreview, EngineeringBlueprint, StageStatus, WorkflowStage } from "./types/workflow";
+import { generateBlueprint, getProject, listProjects } from "./lib/api";
+import type { ArtifactPreview, EngineeringBlueprint, ProjectSummary, StageStatus, WorkflowStage } from "./types/workflow";
 
 const defaultIdea = "Build an online food delivery application with order tracking and secure payments.";
 
@@ -156,11 +157,26 @@ function getArtifacts(blueprint: EngineeringBlueprint | null, loading: boolean):
 function App() {
   const [idea, setIdea] = useState(defaultIdea);
   const [blueprint, setBlueprint] = useState<EngineeringBlueprint | null>(null);
+  const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [loading, setLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const stages = useMemo(() => getStages(blueprint, loading), [blueprint, loading]);
   const artifacts = useMemo(() => getArtifacts(blueprint, loading), [blueprint, loading]);
+
+  const refreshProjects = useCallback(async () => {
+    try {
+      const result = await listProjects();
+      setProjects(result);
+    } catch {
+      setProjects([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshProjects();
+  }, [refreshProjects]);
 
   async function handleStartWorkflow() {
     setLoading(true);
@@ -169,10 +185,26 @@ function App() {
     try {
       const result = await generateBlueprint(idea);
       setBlueprint(result);
+      await refreshProjects();
     } catch {
       setError("The backend workflow is not reachable yet. Start it with Docker Compose or FastAPI, then try again.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleSelectProject(projectId: string) {
+    setHistoryLoading(true);
+    setError(null);
+
+    try {
+      const result = await getProject(projectId);
+      setBlueprint(result);
+      setIdea(result.idea);
+    } catch {
+      setError("Unable to load that project blueprint from the backend.");
+    } finally {
+      setHistoryLoading(false);
     }
   }
 
@@ -218,34 +250,42 @@ function App() {
 
         <WorkflowBoard stages={stages} />
 
-        <div className="grid gap-5 lg:grid-cols-[1fr_380px]">
-          <section className="rounded-lg border border-line bg-white p-5 shadow-sm">
-            <h2 className="text-base font-semibold text-ink">Project Intake</h2>
-            <textarea
-              value={idea}
-              onChange={(event) => setIdea(event.target.value)}
-              className="mt-4 min-h-44 w-full resize-none rounded-lg border border-line bg-white p-4 text-sm leading-6 outline-none ring-signal/20 transition focus:ring-4"
-              placeholder="Describe a software idea, for example: Build an online food delivery application."
-            />
-            {error ? <p className="mt-3 text-sm font-medium text-red-700">{error}</p> : null}
-            {blueprint ? (
-              <div className="mt-4 rounded-lg border border-line bg-panel p-4 text-sm leading-6 text-slate-700">
-                <p className="font-semibold text-ink">{blueprint.documentation.overview}</p>
-                <p className="mt-2">{blueprint.architecture.architecture_pattern}</p>
+        <div className="grid gap-5 xl:grid-cols-[280px_1fr_380px]">
+          <ProjectHistory
+            activeProjectId={blueprint?.project_id}
+            onSelectProject={handleSelectProject}
+            projects={projects}
+          />
+
+          <div className="grid gap-5">
+            <section className="rounded-lg border border-line bg-white p-5 shadow-sm">
+              <h2 className="text-base font-semibold text-ink">Project Intake</h2>
+              <textarea
+                value={idea}
+                onChange={(event) => setIdea(event.target.value)}
+                className="mt-4 min-h-44 w-full resize-none rounded-lg border border-line bg-white p-4 text-sm leading-6 outline-none ring-signal/20 transition focus:ring-4"
+                placeholder="Describe a software idea, for example: Build an online food delivery application."
+              />
+              {error ? <p className="mt-3 text-sm font-medium text-red-700">{error}</p> : null}
+              {blueprint ? (
+                <div className="mt-4 rounded-lg border border-line bg-panel p-4 text-sm leading-6 text-slate-700">
+                  <p className="font-semibold text-ink">{blueprint.documentation.overview}</p>
+                  <p className="mt-2">{blueprint.architecture.architecture_pattern}</p>
+                </div>
+              ) : null}
+              <div className="mt-4 flex justify-end">
+                <button
+                  className="inline-flex items-center gap-2 rounded-lg bg-signal px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+                  disabled={loading || historyLoading || idea.trim().length < 10}
+                  onClick={handleStartWorkflow}
+                  type="button"
+                >
+                  {loading ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : null}
+                  {loading ? "Running" : "Start Workflow"}
+                </button>
               </div>
-            ) : null}
-            <div className="mt-4 flex justify-end">
-              <button
-                className="inline-flex items-center gap-2 rounded-lg bg-signal px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
-                disabled={loading || idea.trim().length < 10}
-                onClick={handleStartWorkflow}
-                type="button"
-              >
-                {loading ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : null}
-                {loading ? "Running" : "Start Workflow"}
-              </button>
-            </div>
-          </section>
+            </section>
+          </div>
 
           <ArtifactPanel artifacts={artifacts} />
         </div>

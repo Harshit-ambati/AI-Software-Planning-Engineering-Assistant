@@ -1,4 +1,5 @@
 from enum import StrEnum
+from datetime import datetime
 
 from pydantic import BaseModel, Field
 
@@ -97,6 +98,7 @@ class BlueprintRequest(BaseModel):
 class EngineeringBlueprint(BaseModel):
     project_id: str
     idea: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
     requirements: RequirementOutput
     architecture: ArchitectureOutput
     database: DatabaseOutput
@@ -104,3 +106,15 @@ class EngineeringBlueprint(BaseModel):
     implementation: ImplementationOutput
     documentation: DocumentationOutput
     validation: ValidationOutput
+
+
+class ProjectSummary(BaseModel):
+    project_id: str
+    idea: str
+    status: str
+    validation_status: str
+    created_at: datetime
+
+
+class ProjectListResponse(BaseModel):
+    projects: list[ProjectSummary] = Field(default_factory=list)

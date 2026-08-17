@@ -76,3 +76,11 @@ export interface EngineeringBlueprint {
     recommendations: string[];
   };
 }
+
+export interface ProjectSummary {
+  project_id: string;
+  idea: string;
+  status: string;
+  validation_status: string;
+  created_at: string;
+}

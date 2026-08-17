@@ -30,3 +30,20 @@ def test_generate_blueprint_returns_structured_artifacts():
     assert body["implementation"]["phases"]
     assert body["documentation"]["overview"]
     assert body["validation"]["status"] == "PASS"
+
+
+def test_generated_blueprint_is_available_in_project_history():
+    with TestClient(app) as client:
+        create_response = client.post(
+            "/api/projects/blueprint",
+            json={"idea": "Build a project management dashboard with task status tracking."},
+        )
+        project_id = create_response.json()["project_id"]
+
+        list_response = client.get("/api/projects")
+        detail_response = client.get(f"/api/projects/{project_id}")
+
+    assert list_response.status_code == 200
+    assert any(project["project_id"] == project_id for project in list_response.json()["projects"])
+    assert detail_response.status_code == 200
+    assert detail_response.json()["project_id"] == project_id
