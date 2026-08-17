@@ -9,6 +9,7 @@ __pycache__/
 .mypy_cache/
 .venv/
 venv/
+.deps/
 
 node_modules/
 dist/
@@ -17,4 +18,3 @@ coverage/
 
 .DS_Store
 Thumbs.db
-
