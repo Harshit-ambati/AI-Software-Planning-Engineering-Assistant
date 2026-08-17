@@ -1,3 +1,4 @@
+from pymongo.errors import PyMongoError
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
 from app.core.config import settings
@@ -8,7 +9,16 @@ database: AsyncIOMotorDatabase | None = None
 
 async def connect_to_mongo() -> None:
     global client, database
-    client = AsyncIOMotorClient(settings.mongodb_uri)
+    pending_client = AsyncIOMotorClient(settings.mongodb_uri, serverSelectionTimeoutMS=500)
+    try:
+        await pending_client.admin.command("ping")
+    except PyMongoError:
+        pending_client.close()
+        client = None
+        database = None
+        return
+
+    client = pending_client
     database = client[settings.mongodb_database]
 
 
@@ -26,6 +36,9 @@ def get_database() -> AsyncIOMotorDatabase:
     return database
 
 
+def get_database_or_none() -> AsyncIOMotorDatabase | None:
+    return database
+
+
 def is_mongo_connected() -> bool:
     return client is not None and database is not None
-

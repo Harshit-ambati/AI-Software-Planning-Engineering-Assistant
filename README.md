@@ -17,6 +17,8 @@ This repository currently contains the project foundation:
 - Health-check API
 - Initial dashboard and workflow visualization shell
 - Agent-oriented backend package structure
+- Supervised blueprint workflow endpoint
+- Project history with MongoDB-backed persistence and in-memory fallback
 
 ## Local Setup
 
@@ -61,5 +63,8 @@ The frontend starts as an internal engineering platform shell with:
 
 ## Next Milestone
 
-Milestone 2 should implement the Requirement Agent and verify the full idea -> LLM -> structured Pydantic output flow.
+The next milestone should connect the existing structured agent contracts to a Gemini provider implementation and add richer artifact inspection views.
 
+## Persistence
+
+When MongoDB is available, generated blueprints are stored in the `projects` collection. If MongoDB is unavailable during local development, the backend falls back to in-memory session storage so the workflow endpoints still run.

@@ -9,18 +9,18 @@ router = APIRouter(prefix="/projects", tags=["projects"])
 
 @router.get("", response_model=ProjectListResponse)
 async def list_projects() -> ProjectListResponse:
-    return ProjectListResponse(projects=project_store.list_projects())
+    return ProjectListResponse(projects=await project_store.list_projects())
 
 
 @router.post("/blueprint", response_model=EngineeringBlueprint)
 async def generate_blueprint(request: BlueprintRequest) -> EngineeringBlueprint:
     blueprint = run_blueprint_workflow(request.idea)
-    return project_store.save(blueprint)
+    return await project_store.save(blueprint)
 
 
 @router.get("/{project_id}", response_model=EngineeringBlueprint)
 async def get_project(project_id: str) -> EngineeringBlueprint:
-    blueprint = project_store.get(project_id)
+    blueprint = await project_store.get(project_id)
     if blueprint is None:
         raise HTTPException(status_code=404, detail="Project blueprint not found.")
     return blueprint
