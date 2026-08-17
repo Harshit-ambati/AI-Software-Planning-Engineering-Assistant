@@ -1,9 +1,13 @@
-import { Activity, Boxes, FileCheck2, GitBranch, ShieldCheck } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Activity, Boxes, FileCheck2, GitBranch, Loader2, ShieldCheck } from "lucide-react";
 import { ArtifactPanel } from "./components/ArtifactPanel";
 import { WorkflowBoard } from "./components/WorkflowBoard";
-import type { ArtifactPreview, WorkflowStage } from "./types/workflow";
+import { generateBlueprint } from "./lib/api";
+import type { ArtifactPreview, EngineeringBlueprint, StageStatus, WorkflowStage } from "./types/workflow";
 
-const stages: WorkflowStage[] = [
+const defaultIdea = "Build an online food delivery application with order tracking and secure payments.";
+
+const baseStages: WorkflowStage[] = [
   {
     id: "requirements",
     label: "Requirements",
@@ -29,6 +33,12 @@ const stages: WorkflowStage[] = [
     summary: "Generate REST endpoints, schemas, auth, and error cases.",
   },
   {
+    id: "implementation",
+    label: "Plan",
+    status: "pending",
+    summary: "Break delivery into project structure, phases, and build order.",
+  },
+  {
     id: "documentation",
     label: "Docs",
     status: "pending",
@@ -42,7 +52,7 @@ const stages: WorkflowStage[] = [
   },
 ];
 
-const artifacts: ArtifactPreview[] = [
+const initialArtifacts: ArtifactPreview[] = [
   {
     title: "Requirement Output",
     stage: "Requirement Agent",
@@ -63,7 +73,109 @@ const artifacts: ArtifactPreview[] = [
   },
 ];
 
+function getStages(blueprint: EngineeringBlueprint | null, loading: boolean): WorkflowStage[] {
+  if (loading) {
+    return baseStages.map((stage, index) => ({
+      ...stage,
+      status: index === 0 ? "active" : "pending",
+    }));
+  }
+
+  if (!blueprint) {
+    return baseStages;
+  }
+
+  const validationStatus: StageStatus = blueprint.validation.status === "PASS" ? "completed" : "blocked";
+  return baseStages.map((stage) => ({
+    ...stage,
+    status: stage.id === "validation" ? validationStatus : "completed",
+  }));
+}
+
+function getArtifacts(blueprint: EngineeringBlueprint | null, loading: boolean): ArtifactPreview[] {
+  if (!blueprint) {
+    return loading
+      ? initialArtifacts.map((artifact, index) => ({
+          ...artifact,
+          status: index === 0 ? "active" : "pending",
+        }))
+      : initialArtifacts;
+  }
+
+  return [
+    {
+      title: "Requirement Output",
+      stage: "Requirement Agent",
+      status: "completed",
+      items: [
+        `${blueprint.requirements.actors.length} actors identified`,
+        `${blueprint.requirements.functional_requirements.length} functional requirements`,
+        `${blueprint.requirements.non_functional_requirements.length} non-functional requirements`,
+      ],
+    },
+    {
+      title: "Architecture Blueprint",
+      stage: "Architecture Agent",
+      status: "completed",
+      items: [
+        blueprint.architecture.architecture_pattern,
+        `${blueprint.architecture.components.length} components`,
+        `${blueprint.architecture.decisions.length} technology decisions`,
+      ],
+    },
+    {
+      title: "Database Schema",
+      stage: "Database Agent",
+      status: "completed",
+      items: blueprint.database.collections.map((collection) => `${collection.name}: ${collection.description}`),
+    },
+    {
+      title: "API Specification",
+      stage: "API Agent",
+      status: "completed",
+      items: blueprint.api.endpoints.map((endpoint) => `${endpoint.method} ${endpoint.path}`),
+    },
+    {
+      title: "Implementation Plan",
+      stage: "Documentation Agent",
+      status: "completed",
+      items: blueprint.implementation.phases,
+    },
+    {
+      title: "Validation Report",
+      stage: "Validation Agent",
+      status: blueprint.validation.status === "PASS" ? "completed" : "blocked",
+      items:
+        blueprint.validation.issues.length > 0
+          ? blueprint.validation.issues.map((issue) => issue.message)
+          : blueprint.validation.recommendations,
+    },
+  ];
+}
+
 function App() {
+  const [idea, setIdea] = useState(defaultIdea);
+  const [blueprint, setBlueprint] = useState<EngineeringBlueprint | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const stages = useMemo(() => getStages(blueprint, loading), [blueprint, loading]);
+  const artifacts = useMemo(() => getArtifacts(blueprint, loading), [blueprint, loading]);
+
+  async function handleStartWorkflow() {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const result = await generateBlueprint(idea);
+      setBlueprint(result);
+    } catch {
+      setError("The backend workflow is not reachable yet. Start it with Docker Compose or FastAPI, then try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-panel text-ink">
       <header className="border-b border-line bg-white">
@@ -75,7 +187,7 @@ function App() {
           <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
             <span className="inline-flex items-center gap-2 rounded-lg border border-line bg-white px-3 py-2">
               <Activity aria-hidden="true" className="h-4 w-4 text-success" />
-              Milestone 1
+              MVP workflow
             </span>
             <span className="inline-flex items-center gap-2 rounded-lg border border-line bg-white px-3 py-2">
               <ShieldCheck aria-hidden="true" className="h-4 w-4 text-signal" />
@@ -90,17 +202,17 @@ function App() {
           <div className="rounded-lg border border-line bg-white p-5 shadow-sm">
             <Boxes aria-hidden="true" className="h-5 w-5 text-signal" />
             <p className="mt-4 text-sm text-slate-500">Active project</p>
-            <p className="mt-1 text-lg font-semibold">Blueprint Generator</p>
+            <p className="mt-1 text-lg font-semibold">{blueprint ? blueprint.project_id.slice(0, 8) : "Blueprint Generator"}</p>
           </div>
           <div className="rounded-lg border border-line bg-white p-5 shadow-sm">
             <GitBranch aria-hidden="true" className="h-5 w-5 text-caution" />
             <p className="mt-4 text-sm text-slate-500">Current agent</p>
-            <p className="mt-1 text-lg font-semibold">Requirement Agent</p>
+            <p className="mt-1 text-lg font-semibold">{loading ? "Supervisor" : blueprint ? "Complete" : "Ready"}</p>
           </div>
           <div className="rounded-lg border border-line bg-white p-5 shadow-sm">
             <FileCheck2 aria-hidden="true" className="h-5 w-5 text-success" />
             <p className="mt-4 text-sm text-slate-500">Validation status</p>
-            <p className="mt-1 text-lg font-semibold">Waiting for artifacts</p>
+            <p className="mt-1 text-lg font-semibold">{blueprint ? blueprint.validation.status : "Waiting for artifacts"}</p>
           </div>
         </section>
 
@@ -110,12 +222,27 @@ function App() {
           <section className="rounded-lg border border-line bg-white p-5 shadow-sm">
             <h2 className="text-base font-semibold text-ink">Project Intake</h2>
             <textarea
+              value={idea}
+              onChange={(event) => setIdea(event.target.value)}
               className="mt-4 min-h-44 w-full resize-none rounded-lg border border-line bg-white p-4 text-sm leading-6 outline-none ring-signal/20 transition focus:ring-4"
               placeholder="Describe a software idea, for example: Build an online food delivery application."
             />
+            {error ? <p className="mt-3 text-sm font-medium text-red-700">{error}</p> : null}
+            {blueprint ? (
+              <div className="mt-4 rounded-lg border border-line bg-panel p-4 text-sm leading-6 text-slate-700">
+                <p className="font-semibold text-ink">{blueprint.documentation.overview}</p>
+                <p className="mt-2">{blueprint.architecture.architecture_pattern}</p>
+              </div>
+            ) : null}
             <div className="mt-4 flex justify-end">
-              <button className="rounded-lg bg-signal px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700">
-                Start Workflow
+              <button
+                className="inline-flex items-center gap-2 rounded-lg bg-signal px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+                disabled={loading || idea.trim().length < 10}
+                onClick={handleStartWorkflow}
+                type="button"
+              >
+                {loading ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : null}
+                {loading ? "Running" : "Start Workflow"}
               </button>
             </div>
           </section>
@@ -128,4 +255,3 @@ function App() {
 }
 
 export default App;
-

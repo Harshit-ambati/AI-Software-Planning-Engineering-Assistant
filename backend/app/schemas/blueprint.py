@@ -8,6 +8,7 @@ class WorkflowStage(StrEnum):
     ARCHITECTURE = "architecture"
     DATABASE = "database"
     API = "api"
+    IMPLEMENTATION = "implementation"
     DOCUMENTATION = "documentation"
     VALIDATION = "validation"
 
@@ -28,16 +29,52 @@ class ArchitectureOutput(BaseModel):
     decisions: list[str] = Field(default_factory=list)
 
 
+class TechnologyDecision(BaseModel):
+    name: str
+    purpose: str
+    rationale: str
+
+
+class DatabaseCollection(BaseModel):
+    name: str
+    description: str
+    fields: list[str] = Field(default_factory=list)
+
+
 class DatabaseOutput(BaseModel):
-    collections: list[dict] = Field(default_factory=list)
+    collections: list[DatabaseCollection] = Field(default_factory=list)
     relationships: list[str] = Field(default_factory=list)
     indexes: list[str] = Field(default_factory=list)
 
 
+class APIEndpoint(BaseModel):
+    method: str
+    path: str
+    description: str
+    request_schema: dict = Field(default_factory=dict)
+    response_schema: dict = Field(default_factory=dict)
+    authentication_required: bool = True
+
+
 class APIOutput(BaseModel):
-    endpoints: list[dict] = Field(default_factory=list)
+    endpoints: list[APIEndpoint] = Field(default_factory=list)
     authentication: str = ""
     error_cases: list[str] = Field(default_factory=list)
+
+
+class ImplementationOutput(BaseModel):
+    project_structure: list[str] = Field(default_factory=list)
+    phases: list[str] = Field(default_factory=list)
+    dependencies: list[str] = Field(default_factory=list)
+    suggested_order: list[str] = Field(default_factory=list)
+
+
+class DocumentationOutput(BaseModel):
+    overview: str
+    setup_instructions: list[str] = Field(default_factory=list)
+    architecture_notes: list[str] = Field(default_factory=list)
+    api_notes: list[str] = Field(default_factory=list)
+    development_guidelines: list[str] = Field(default_factory=list)
 
 
 class ValidationIssue(BaseModel):
@@ -52,3 +89,18 @@ class ValidationOutput(BaseModel):
     warnings: list[str] = Field(default_factory=list)
     recommendations: list[str] = Field(default_factory=list)
 
+
+class BlueprintRequest(BaseModel):
+    idea: str = Field(min_length=10, max_length=5000)
+
+
+class EngineeringBlueprint(BaseModel):
+    project_id: str
+    idea: str
+    requirements: RequirementOutput
+    architecture: ArchitectureOutput
+    database: DatabaseOutput
+    api: APIOutput
+    implementation: ImplementationOutput
+    documentation: DocumentationOutput
+    validation: ValidationOutput
