@@ -1,8 +1,9 @@
 # Verification record
 
 Date: 21 October 2026. Local Windows environment: Python 3.14.2, Node 24.13.0.
-CI additionally targets Ubuntu, Python 3.12 and Node 22. Remote CI status must
-be checked independently; adding a workflow does not establish that it passed.
+CI additionally targets Ubuntu, Python 3.12 and Node 22. Both jobs passed for
+implementation commit `43dcf7e` in
+[GitHub Actions run 39560741330](https://github.com/Harshit-ambati/AI-Software-Planning-Engineering-Assistant/actions/runs/39560741330).
 
 ## Tested boundaries
 
