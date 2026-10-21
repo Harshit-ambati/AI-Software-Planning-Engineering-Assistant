@@ -62,7 +62,10 @@ def validate(artifacts, critique=None):
         if operation in operations:
             issue("DUPLICATE_ROUTE", "apis", endpoint["id"], f"Duplicate route {operation}.")
         operations.add(operation)
-        if not re.fullmatch(r"/[A-Za-z0-9_/{\}\-]*", path):
+        if not re.fullmatch(
+            r"/(?:[A-Za-z0-9_-]+|\{[A-Za-z_][A-Za-z0-9_]*\})(?:/(?:[A-Za-z0-9_-]+|\{[A-Za-z_][A-Za-z0-9_]*\}))*/?|/",
+            path,
+        ):
             issue("INVALID_PATH", "apis", endpoint["id"], "Path must be an absolute REST path without query strings.")
         if path.count("{") != path.count("}"):
             issue("INVALID_PATH", "apis", endpoint["id"], "Unbalanced path parameters.")

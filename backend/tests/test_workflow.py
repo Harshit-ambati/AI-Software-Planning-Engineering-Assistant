@@ -191,3 +191,14 @@ def test_interrupted_work_is_not_silently_restarted(settings):
         assert client.get(f"/api/runs/{rid}").json()["status"] == "interrupted"
         assert client.post(f"/api/runs/{rid}/resume").status_code == 202
         wait(client, rid, ["passed"])
+
+
+def test_invalid_api_paths_cannot_be_exported_as_openapi(client):
+    pid = project(client)
+    rid = start(client, pid, review=False)
+    value = wait(client, rid, ["passed"])
+    artifact = value["artifacts"]["apis"]
+    artifact["endpoints"][0]["path"] = "/orders/{{broken}}"
+    client.app.state.store.artifact(rid, "apis", artifact)
+    assert client.get(f"/api/runs/{rid}/export/openapi").status_code == 409
+    assert client.get(f"/api/runs/{rid}/export/json").status_code == 200

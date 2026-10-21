@@ -1,36 +1,36 @@
 services:
   backend:
     build:
-      context: ./backend
-    env_file:
-      - .env
-    ports:
-      - "${BACKEND_PORT:-8000}:8000"
-    depends_on:
-      - mongo
-    volumes:
-      - ./backend/app:/app/app
-
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      AI_PROVIDER: ${AI_PROVIDER:-demo}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.8-flash}
+      GEMINI_EMBEDDING_MODEL: ${GEMINI_EMBEDDING_MODEL:-gemini-embedding-001}
+      QDRANT_URL: ${QDRANT_URL:-}
+      APP_ACCESS_TOKEN: ${APP_ACCESS_TOKEN:-}
+      DATA_DIR: /app/data
+      ALLOWED_ORIGINS: http://127.0.0.1:8080,http://localhost:8080
+    ports: ["127.0.0.1:8000:8000"]
+    volumes: ["workspace-data:/app/data"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
   frontend:
     build:
-      context: ./frontend
-    environment:
-      VITE_API_BASE_URL: http://localhost:${BACKEND_PORT:-8000}
-    ports:
-      - "${FRONTEND_PORT:-5173}:5173"
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports: ["127.0.0.1:8080:80"]
     depends_on:
-      - backend
-    volumes:
-      - ./frontend/src:/app/src
-
-  mongo:
-    image: mongo:7
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
-
+      backend:
+        condition: service_healthy
+  qdrant:
+    image: qdrant/qdrant:v1.14.1
+    profiles: ["vector-server"]
+    volumes: ["qdrant-data:/qdrant/storage"]
 volumes:
-  mongo-data:
-
+  workspace-data:
+  qdrant-data:

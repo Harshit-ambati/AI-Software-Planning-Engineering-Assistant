@@ -1,0 +1,84 @@
+{
+  "benchmark": "Offline deterministic validator fault injection",
+  "fixture": "food-delivery-fixture-v2",
+  "baseline_findings": [],
+  "cases": [
+    {
+      "case": "Missing cancellation endpoint",
+      "expected_rule": "MISSING_COVERAGE",
+      "detected": true,
+      "observed_rules": [
+        "MISSING_COVERAGE"
+      ]
+    },
+    {
+      "case": "Unknown requirement reference",
+      "expected_rule": "UNKNOWN_REQUIREMENT",
+      "detected": true,
+      "observed_rules": [
+        "UNKNOWN_REQUIREMENT"
+      ]
+    },
+    {
+      "case": "Dangling relationship",
+      "expected_rule": "UNKNOWN_ENTITY",
+      "detected": true,
+      "observed_rules": [
+        "UNKNOWN_ENTITY"
+      ]
+    },
+    {
+      "case": "Cyclic implementation plan",
+      "expected_rule": "DEPENDENCY_CYCLE",
+      "detected": true,
+      "observed_rules": [
+        "DEPENDENCY_CYCLE"
+      ]
+    },
+    {
+      "case": "Duplicate operation",
+      "expected_rule": "DUPLICATE_ROUTE",
+      "detected": true,
+      "observed_rules": [
+        "DUPLICATE_ID",
+        "DUPLICATE_ROUTE"
+      ]
+    },
+    {
+      "case": "Unknown dependency",
+      "expected_rule": "UNKNOWN_TASK",
+      "detected": true,
+      "observed_rules": [
+        "UNKNOWN_TASK"
+      ]
+    },
+    {
+      "case": "Public write operation",
+      "expected_rule": "PUBLIC_WRITE",
+      "detected": true,
+      "observed_rules": [
+        "PUBLIC_WRITE"
+      ]
+    },
+    {
+      "case": "Empty architecture",
+      "expected_rule": "EMPTY_ARTIFACT",
+      "detected": true,
+      "observed_rules": [
+        "EMPTY_ARTIFACT",
+        "MISSING_COVERAGE"
+      ]
+    }
+  ],
+  "expected_faults_detected": 8,
+  "injected_faults": 8,
+  "documented_blind_spot": {
+    "case": "Linked endpoint has wrong business semantics",
+    "deterministic_findings": [],
+    "explanation": "IDs still link correctly. Detecting this semantic mismatch requires model critique or human review."
+  },
+  "limitations": [
+    "One synthetic domain; no estimate of generalization or live model quality.",
+    "Detection here is rule-trigger rate, not independently measured semantic precision/recall."
+  ]
+}

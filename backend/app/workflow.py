@@ -81,7 +81,12 @@ class Workflow:
             if critique is None:
                 critique, meta = self.provider.generate(
                     "critique",
-                    dict(brief=state["brief"], constraints=state["constraints"], blueprint=state["artifacts"]),
+                    dict(
+                        brief=state["brief"],
+                        constraints=state["constraints"],
+                        blueprint=state["artifacts"],
+                        sources=state.get("sources", []),
+                    ),
                 )
                 self.store.artifact(run_id, "critique", critique)
                 self.store.event(run_id, "critique", "completed", meta)

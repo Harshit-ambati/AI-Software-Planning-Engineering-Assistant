@@ -197,6 +197,17 @@ def create_app(settings=None):
         if format == "openapi":
             if "apis" not in value["artifacts"]:
                 raise HTTPException(409, "API artifact is not available yet.")
+            from .validation import validate
+
+            invalid = validate(value["artifacts"])["findings"]
+            if any(
+                f["artifact"] == "apis" and f["rule"] in ("DUPLICATE_ROUTE", "INVALID_PATH", "DUPLICATE_ID")
+                for f in invalid
+            ):
+                raise HTTPException(
+                    409,
+                    "Resolve duplicate or invalid API operations in a new revision before OpenAPI export. JSON and Markdown remain available for review.",
+                )
             import json
 
             content, media = json.dumps(openapi(owner, value), indent=2), "application/json"
