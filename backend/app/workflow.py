@@ -8,6 +8,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.types import Command, interrupt
 
 from .models import STAGES
+from .store import fingerprint
 from .validation import validate
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,8 @@ class State(TypedDict, total=False):
     artifacts: dict
     sources: list
     approved: bool
+    strategy: str
+    use_memory: bool
 
 
 class Workflow:
@@ -36,7 +39,11 @@ class Workflow:
         def retrieve(state):
             run_id = state["run_id"]
             saved = self.store.run(run_id)["artifacts"].get("sources")
-            sources = saved if saved is not None else self.memory.search(state["project_id"], state["brief"])
+            sources = (
+                saved
+                if saved is not None
+                else (self.memory.search(state["project_id"], state["brief"]) if state.get("use_memory", True) else [])
+            )
             self.store.artifact(run_id, "sources", sources)
             self.store.event(run_id, "memory", "completed", {"citations": [s["citation"] for s in sources]})
             return {"sources": sources}
@@ -46,8 +53,29 @@ class Workflow:
                 approved = interrupt({"kind": "requirements_review", "message": "Review requirements before design."})
                 if approved is not True:
                     raise RuntimeError("Requirements were not approved.")
-            self.store.event(state["run_id"], "review", "approved")
-            return {"approved": True}
+            current = self.store.run(state["run_id"])["artifacts"]["requirements"]
+            self.store.event(state["run_id"], "review", "approved", {"requirements_hash": fingerprint(current)})
+            return {"approved": True, "artifacts": state["artifacts"] | {"requirements": current}}
+
+        def baseline(state):
+            run_id = state["run_id"]
+            self.store.event(run_id, "baseline", "running")
+            saved = self.store.run(run_id)["artifacts"].get("baseline_bundle")
+            started = time.monotonic()
+            if saved is None:
+                saved, meta = self.provider.generate(
+                    "blueprint",
+                    dict(brief=state["brief"], constraints=state["constraints"], sources=state.get("sources", [])),
+                )
+                self.store.artifact(run_id, "baseline_bundle", saved)
+            else:
+                meta = {"reused": True}
+            for stage, content in saved.items():
+                self.store.artifact(run_id, stage, content)
+            self.store.event(
+                run_id, "baseline", "completed", meta | {"duration_ms": round((time.monotonic() - started) * 1000)}
+            )
+            return {"artifacts": saved}
 
         def stage_node(stage):
             def execute(state):
@@ -79,6 +107,7 @@ class Workflow:
             self.store.event(run_id, "validation", "running")
             critique = self.store.run(run_id)["artifacts"].get("critique")
             if critique is None:
+                started = time.monotonic()
                 critique, meta = self.provider.generate(
                     "critique",
                     dict(
@@ -89,18 +118,31 @@ class Workflow:
                     ),
                 )
                 self.store.artifact(run_id, "critique", critique)
-                self.store.event(run_id, "critique", "completed", meta)
-            report = validate(state["artifacts"], critique)
+                self.store.event(
+                    run_id, "critique", "completed", meta | {"duration_ms": round((time.monotonic() - started) * 1000)}
+                )
+            report = validate(
+                state["artifacts"],
+                critique,
+                sources=state.get("sources", []),
+                expected_semantics=self.settings.ai_provider == "gemini",
+            )
             self.store.artifact(run_id, "validation", report)
             self.store.event(run_id, "validation", "completed", {"status": report["status"]})
             return {"artifacts": state["artifacts"] | {"validation": report}}
 
         graph.add_node("retrieve", retrieve)
         graph.add_node("review", review)
+        graph.add_node("baseline", baseline)
         for stage in STAGES[:-1]:
             graph.add_node(stage, stage_node(stage))
         graph.add_node("validation", validation)
-        chain = [START, "retrieve", "requirements", "review", *STAGES[1:], END]
+        graph.add_edge(START, "retrieve")
+        graph.add_conditional_edges(
+            "retrieve", lambda state: "baseline" if state.get("strategy") == "single_prompt" else "requirements"
+        )
+        graph.add_edge("baseline", "validation")
+        chain = ["requirements", "review", *STAGES[1:], END]
         for source, target in zip(chain, chain[1:]):
             graph.add_edge(source, target)
         return graph.compile(checkpointer=saver)
@@ -129,6 +171,8 @@ class Workflow:
                         constraints=run["constraints_text"],
                         review_required=bool(run["review_required"]),
                         artifacts={},
+                        strategy=run.get("strategy", "staged"),
+                        use_memory=bool(run.get("use_memory", True)),
                     )
                 graph.invoke(value, config)
                 state = graph.get_state(config)

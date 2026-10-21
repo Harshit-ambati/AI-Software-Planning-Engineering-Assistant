@@ -11,6 +11,7 @@ import {
   CircleAlert,
   Clock3,
   FileText,
+  FlaskConical,
   FolderKanban,
   GitBranch,
   Layers3,
@@ -29,7 +30,11 @@ import { api, download } from './api';
 import ArtifactView, { ValueView } from './components/ArtifactView';
 import KnowledgePanel from './components/KnowledgePanel';
 import ProjectForm from './components/ProjectForm';
-import type { Config, Diff, Json, Project, Report, Run, Stage } from './types';
+import RequirementsEditor from './components/RequirementsEditor';
+import EvaluationPanel from './components/EvaluationPanel';
+import ImpactView from './components/ImpactView';
+import ReviewHistory from './components/ReviewHistory';
+import type { Config, Diff, Json, Project, Report, Run, Stage, Requirements } from './types';
 import { human, isActive, labels, stages } from './types';
 
 const WorkflowGraph = lazy(() => import('./components/WorkflowGraph'));
@@ -42,11 +47,13 @@ const stageIcons: Record<Stage, LucideIcon> = {
   documentation: BookOpen,
   validation: ShieldCheck,
 };
-type View = 'overview' | 'blueprint' | 'traceability' | 'knowledge' | 'activity';
+type View = 'overview' | 'blueprint' | 'traceability' | 'knowledge' | 'activity' | 'impact' | 'evaluation';
 const tabs: { id: View; name: string; icon: LucideIcon }[] = [
   { id: 'overview', name: 'Overview', icon: LayoutDashboard },
   { id: 'blueprint', name: 'Blueprint', icon: Layers3 },
   { id: 'traceability', name: 'Traceability', icon: GitBranch },
+  { id: 'impact', name: 'Impact', icon: GitBranch },
+  { id: 'evaluation', name: 'Evaluation', icon: FlaskConical },
   { id: 'knowledge', name: 'Knowledge', icon: BookOpen },
   { id: 'activity', name: 'Activity', icon: Activity },
 ];
@@ -73,6 +80,7 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [diff, setDiff] = useState<Diff | null>(null);
   const createdDraft = useRef<Project | null>(null);
+  const [editMode, setEditMode] = useState<'edit' | 'impact' | null>(null);
   useEffect(() => {
     const params = new URLSearchParams();
     if (projectId) params.set('project', projectId);
@@ -184,6 +192,36 @@ export default function App() {
       } catch (e) {
         setError((e as Error).message);
       }
+  }
+  async function startComparison(strategy: 'staged' | 'single_prompt', useMemory: boolean) {
+    if (!project) return;
+    const next = await api<Run>(`/projects/${project.id}/runs`, {
+      brief: run?.brief || project.brief,
+      constraints: run?.constraints_text || project.constraints_text,
+      strategy,
+      use_memory: useMemory,
+      review_required: strategy === 'staged',
+      parent_run_id: run?.id || null,
+    });
+    setRevisionId(next.id);
+    setRun(next);
+    setReload((n) => n + 1);
+  }
+  async function createFromRequirements(requirements: Requirements) {
+    if (!project || !run) return;
+    const next = await api<Run>(`/projects/${project.id}/runs`, {
+      brief: run.brief,
+      constraints: run.constraints_text,
+      parent_run_id: run.id,
+      requirements_seed: requirements,
+      review_required: true,
+      use_memory: run.use_memory ?? true,
+    });
+    setRevisionId(next.id);
+    setRun(next);
+    setView('overview');
+    setDiff(null);
+    setReload((n) => n + 1);
   }
   const report = run?.artifacts.validation as unknown as Report | undefined;
   const functional = (run?.artifacts.requirements as Record<string, Json> | undefined)?.functional as
@@ -473,7 +511,7 @@ export default function App() {
                   <h1>{project.name}</h1>
                   <p>
                     {run
-                      ? `${run.provider === 'demo' ? 'Demonstration fixture' : run.model} · Created ${new Date(run.created_at).toLocaleString()}`
+                      ? `${run.provider === 'demo' ? 'Demonstration fixture' : run.model} · ${run.strategy === 'single_prompt' ? 'Single-prompt baseline' : 'Staged workflow'} · Created ${new Date(run.created_at).toLocaleString()}`
                       : 'Your project is ready for its first blueprint.'}
                   </p>
                 </div>
@@ -542,6 +580,9 @@ export default function App() {
                   </div>
                   <button className="text-button" onClick={() => inspect('requirements')}>
                     Inspect
+                  </button>
+                  <button className="secondary" disabled={busy} onClick={() => setEditMode('edit')}>
+                    Edit requirements
                   </button>
                   <button className="secondary" disabled={busy} onClick={() => void action('reject')}>
                     Revise scope
@@ -612,7 +653,9 @@ export default function App() {
                     </Suspense>
                     <div className="workflow-caption">
                       <ShieldCheck size={15} />
-                      Human review follows requirement analysis. Every completed artifact is saved.
+                      {run?.strategy === 'single_prompt'
+                        ? 'Baseline artifacts are generated together in one response; the experiment skips human review.'
+                        : 'Human review follows requirement analysis. Every completed artifact is saved.'}
                     </div>
                   </section>
                   <div className="overview-columns">
@@ -798,6 +841,7 @@ export default function App() {
                           : 'The project brief is unchanged.'}{' '}
                         {diff.changes.length} artifact fields changed.
                       </p>
+                      {diff.impact && <ImpactView impact={diff.impact} />}
                       {diff.changes.map((change) => (
                         <details key={change.path}>
                           <summary>
@@ -818,6 +862,44 @@ export default function App() {
                     </div>
                   )}
                 </section>
+              )}
+              {view === 'impact' && (
+                <section className="panel">
+                  <div className="panel-heading">
+                    <div>
+                      <span className="eyebrow">FOLLOW THE CONSEQUENCES OF A CHANGE</span>
+                      <h2>Requirement change impact</h2>
+                      <p>Preview affected design records and task dependencies before creating a revision.</p>
+                    </div>
+                  </div>
+                  <div className="note">
+                    Select a completed revision as the baseline. Change a requirement, analyze its linked
+                    components, entities, endpoints and dependent tasks, then create a separate revised
+                    blueprint. Scope and NFR changes conservatively flag every design record.
+                  </div>
+                  <button
+                    className="primary"
+                    disabled={!run?.artifacts.requirements || !canRevise}
+                    onClick={() => setEditMode('impact')}
+                  >
+                    <GitBranch size={16} />
+                    Propose a requirement change
+                  </button>
+                  {previousExists && (
+                    <button className="secondary impact-compare" onClick={() => void compareRun()}>
+                      Analyze previous → current revision
+                    </button>
+                  )}
+                  {diff?.impact && <ImpactView impact={diff.impact} />}
+                </section>
+              )}
+              {view === 'evaluation' && (
+                <EvaluationPanel
+                  project={project}
+                  run={run}
+                  onStart={startComparison}
+                  onSelect={(id) => setRevisionId(id)}
+                />
               )}
               {view === 'knowledge' && (
                 <KnowledgePanel
@@ -853,6 +935,7 @@ export default function App() {
                       </div>
                     ))}
                   </div>
+                  {run && <ReviewHistory key={run.id} runId={run.id} />}
                   {run?.artifacts.sources && (
                     <details className="source-card">
                       <summary>
@@ -874,7 +957,7 @@ export default function App() {
         </main>
         <footer className="app-footer">
           <span>Forma / Engineering with intent</span>
-          <span>Blueprint workspace · v2.0</span>
+          <span>Blueprint workspace · v2.1</span>
         </footer>
       </div>
       {form && (
@@ -895,6 +978,19 @@ export default function App() {
             setForm(null);
           }}
           onSubmit={create}
+        />
+      )}
+      {editMode && run?.artifacts.requirements && (
+        <RequirementsEditor
+          key={run.id + editMode}
+          run={run}
+          mode={editMode}
+          onClose={() => setEditMode(null)}
+          onSaved={(next) => {
+            setRun(next);
+            setReload((n) => n + 1);
+          }}
+          onCreate={createFromRequirements}
         />
       )}
       {showSettings && (

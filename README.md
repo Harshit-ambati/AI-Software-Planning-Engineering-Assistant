@@ -83,6 +83,12 @@ are sent to the configured provider during live generation and embedding.
   LLM semantic critique. A linked requirement is not proof of semantic correctness.
 - Prompt hash/version, model identity, token counts, attempts and stage timing.
 - Exported request/response JSON schemas, CI and automated integration tests.
+- Audited requirement editing, explainable change-impact analysis and seeded revisions.
+- A single-prompt baseline, evaluation workbench, human ratings and retrieval benchmarks.
+- Endpoint-backed semantic assessments and source-rule conformance review in live mode.
+
+See [the v2.1 improvement guide](docs/IMPROVEMENTS.md) for review/editing,
+experiment controls, metric definitions and the opt-in live verification command.
 
 ## Storage and deployment boundaries
 

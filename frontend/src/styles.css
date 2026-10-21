@@ -2860,3 +2860,242 @@ th {
 .sidebar-note p {
   color: #768365;
 }
+/* Review, impact and reproducible evaluation tools. */
+.requirements-dialog {
+  width: calc(100% - 36px);
+  max-width: 850px;
+  max-height: 91vh;
+  padding: 28px 30px;
+  background: #fbfcf8;
+  border: 1px solid #d8e1ca;
+  border-radius: 13px;
+  color: #536b40;
+  box-shadow: 0 25px 100px #1e34293d;
+}
+.requirement-edit,
+.retrieval-query {
+  border: 1px solid #dce5cf;
+  border-radius: 8px;
+  padding: 16px 18px;
+  margin: 20px 0;
+  background: #fff;
+}
+.requirement-edit legend,
+.retrieval-query legend {
+  font-size: 11px;
+  padding: 0 8px;
+  font-weight: 600;
+  color: #647e4c;
+}
+.edit-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #778e60;
+}
+.edit-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.edit-columns label {
+  min-width: 0;
+}
+.edit-columns input,
+.edit-columns select {
+  width: 100%;
+}
+select {
+  padding: 10px;
+  border: 1px solid #dbe4ce;
+  background: #fff;
+  border-radius: 6px;
+  color: #657c51;
+  font-size: 11px;
+}
+.context-editor {
+  margin: 24px 0;
+}
+.context-editor > summary {
+  font-size: 12px;
+  color: #718959;
+  padding: 10px 0;
+}
+.impact-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 0;
+  font-size: 13px;
+  color: #5b7546;
+}
+.impact-record {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  padding: 12px 0;
+  border-bottom: 1px solid #e9eedf;
+  font-size: 11px;
+}
+.impact-record > code {
+  color: #6b8753;
+  padding-top: 2px;
+  min-width: 40px;
+}
+.impact-record > div {
+  flex: 1;
+}
+.impact-record strong {
+  font-size: 11px;
+  font-weight: 500;
+}
+.impact-record p {
+  font-size: 10px;
+  color: #7b8d67;
+  margin: 5px 0;
+}
+.impact-compare {
+  margin-left: 12px;
+}
+.impact-result .artifact-section > p {
+  font-size: 11px;
+}
+.experiment-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.experiment-controls label {
+  margin: 0;
+  flex: 1;
+  min-width: 180px;
+}
+.experiment-controls .primary {
+  margin-bottom: 1px;
+  min-height: 37px;
+}
+.evaluation-caption {
+  font-size: 10px;
+  line-height: 1.8;
+  margin: 15px 0 20px;
+}
+.metric-filter {
+  max-width: 230px;
+}
+.evaluation-table {
+  min-width: 1010px;
+}
+.evaluation-table td {
+  vertical-align: top;
+  font-size: 11px;
+}
+.evaluation-table td small {
+  display: block;
+  line-height: 1.8;
+  font-size: 9px;
+  color: #839271;
+}
+.evaluation-table td .tag {
+  margin: 8px 0 4px;
+  display: table;
+}
+.rating-form {
+  padding: 22px;
+  background: #f7f9f1;
+  border: 1px solid #e3e9d8;
+  border-radius: 8px;
+  margin-top: 25px;
+}
+.rating-form h3 {
+  color: #6b8253;
+  font-size: 14px;
+}
+.checkbox-label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
+  font-size: 11px;
+  line-height: 1.7;
+}
+.checkbox-label input {
+  width: 15px;
+  height: 15px;
+  accent-color: #4f7542;
+  flex-shrink: 0;
+}
+.retrieval-score {
+  margin-top: 18px;
+}
+.retrieval-score summary {
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 10px;
+  line-height: 1.8;
+}
+.retrieval-score ul {
+  padding-left: 18px;
+  line-height: 1.8;
+}
+.retrieval-score > div {
+  border-top: 1px solid #e8eedc;
+  padding: 14px 0;
+}
+.tabs {
+  min-width: 0;
+  overflow-x: auto;
+}
+.workspace-toolbar {
+  flex-wrap: wrap;
+}
+.semantic-empty {
+  font-size: 11px;
+}
+.review-banner .secondary {
+  white-space: normal;
+}
+@media (max-width: 700px) {
+  .requirements-dialog {
+    padding: 23px 18px;
+  }
+  .edit-columns {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .requirement-edit,
+  .retrieval-query {
+    padding: 12px;
+  }
+  .experiment-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .experiment-controls label {
+    min-width: 0;
+  }
+  .impact-compare {
+    margin: 12px 0 0;
+  }
+  .impact-record {
+    flex-wrap: wrap;
+  }
+  .impact-record .tag {
+    margin-left: 52px;
+  }
+  .rating-form {
+    padding: 16px;
+  }
+  .workspace-toolbar .tabs {
+    width: 100%;
+    gap: 12px;
+  }
+  .tabs button {
+    flex-shrink: 0;
+  }
+  .requirements-dialog input,
+  .requirements-dialog textarea {
+    font-size: 12px;
+  }
+}

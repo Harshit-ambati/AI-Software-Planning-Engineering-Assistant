@@ -99,6 +99,8 @@ diagrams, state transitions, API contracts and real screenshots in appendices.
 - Vector retrieval selects a small set of passages, not guaranteed exhaustive
   knowledge. Model changes require reindexing existing documents.
 - NFRs include verification proposals, not measured guarantees.
+- Implemented extensions: artifact-level change-impact propagation, audited
+  requirement edits, a baseline comparison workbench, source-rule assessments
+  and labeled retrieval metrics. See IMPROVEMENTS.md for their limits.
 - Advanced future work: role-based teams, PostgreSQL checkpointing, parallel
-  workers, automatic requirement change-impact propagation, stronger semantic
-  evaluation and bounded repair with human approval.
+  workers, code-level change propagation and bounded repair with human approval.

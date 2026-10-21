@@ -1,0 +1,144 @@
+{
+  "corpus_hash": "b73db4b6c3676bc6ed46d901a60ceb8f6b2ecc700266580a252177b2069f2833",
+  "k": 3,
+  "query_count": 5,
+  "embedding": "knowledge_a864e85d37b5",
+  "mode": "lexical demo",
+  "precision_at_k": 0.3333,
+  "recall_at_k": 1.0,
+  "mrr": 1.0,
+  "queries": [
+    {
+      "query": "cancellation before preparation delivery status audit",
+      "expected_document_ids": [
+        "90748156-beec-5992-b83b-7ba2fe43a37e"
+      ],
+      "retrieved": [
+        {
+          "project_id": "ff8b2fca-4983-4ac1-8fcc-ca85ff088617",
+          "document_id": "90748156-beec-5992-b83b-7ba2fe43a37e",
+          "citation": "90748156-beec-5992-b83b-7ba2fe43a37e:1",
+          "title": "delivery policy",
+          "text": "Cancellation is only allowed before preparation starts. Every delivery status change must be auditable.",
+          "score": 0.5774
+        },
+        {
+          "project_id": "ff8b2fca-4983-4ac1-8fcc-ca85ff088617",
+          "document_id": "39cb896c-ef70-5f4f-90b0-0da16a3fcf84",
+          "citation": "39cb896c-ef70-5f4f-90b0-0da16a3fcf84:1",
+          "title": "appointments policy",
+          "text": "A slot cannot be booked twice. Cancelling within 24 hours records a late cancellation reason.",
+          "score": 0.0937
+        }
+      ],
+      "precision_at_k": 0.3333,
+      "recall_at_k": 1.0,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "query": "reservations expire student active loans",
+      "expected_document_ids": [
+        "4f8d4251-d753-5d11-8c48-a32e49e88897"
+      ],
+      "retrieved": [
+        {
+          "project_id": "ff8b2fca-4983-4ac1-8fcc-ca85ff088617",
+          "document_id": "4f8d4251-d753-5d11-8c48-a32e49e88897",
+          "citation": "4f8d4251-d753-5d11-8c48-a32e49e88897:1",
+          "title": "library policy",
+          "text": "Reservations expire after 48 hours. A student may have at most three active loans.",
+          "score": 0.559
+        },
+        {
+          "project_id": "ff8b2fca-4983-4ac1-8fcc-ca85ff088617",
+          "document_id": "8ce6f085-6eac-565c-b915-fc44ba346f94",
+          "citation": "8ce6f085-6eac-565c-b915-fc44ba346f94:1",
+          "title": "campus policy",
+          "text": "Conflicting reservations must be rejected. Restricted equipment cannot be issued without administrator approval.",
+          "score": 0.1085
+        }
+      ],
+      "precision_at_k": 0.3333,
+      "recall_at_k": 1.0,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "query": "transfers adjustments stock ledger negative inventory",
+      "expected_document_ids": [
+        "4857b6ef-f452-51fc-be74-7e0e827a1a82"
+      ],
+      "retrieved": [
+        {
+          "project_id": "ff8b2fca-4983-4ac1-8fcc-ca85ff088617",
+          "document_id": "4857b6ef-f452-51fc-be74-7e0e827a1a82",
+          "citation": "4857b6ef-f452-51fc-be74-7e0e827a1a82:1",
+          "title": "inventory policy",
+          "text": "Transfers and adjustments must preserve stock ledger history. Negative inventory requires manager review.",
+          "score": 0.6931
+        }
+      ],
+      "precision_at_k": 0.3333,
+      "recall_at_k": 1.0,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "query": "slot booked twice late cancellation reason",
+      "expected_document_ids": [
+        "39cb896c-ef70-5f4f-90b0-0da16a3fcf84"
+      ],
+      "retrieved": [
+        {
+          "project_id": "ff8b2fca-4983-4ac1-8fcc-ca85ff088617",
+          "document_id": "39cb896c-ef70-5f4f-90b0-0da16a3fcf84",
+          "citation": "39cb896c-ef70-5f4f-90b0-0da16a3fcf84:1",
+          "title": "appointments policy",
+          "text": "A slot cannot be booked twice. Cancelling within 24 hours records a late cancellation reason.",
+          "score": 0.562
+        },
+        {
+          "project_id": "ff8b2fca-4983-4ac1-8fcc-ca85ff088617",
+          "document_id": "90748156-beec-5992-b83b-7ba2fe43a37e",
+          "citation": "90748156-beec-5992-b83b-7ba2fe43a37e:1",
+          "title": "delivery policy",
+          "text": "Cancellation is only allowed before preparation starts. Every delivery status change must be auditable.",
+          "score": 0.0962
+        }
+      ],
+      "precision_at_k": 0.3333,
+      "recall_at_k": 1.0,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "query": "restricted equipment administrator approval conflicting reservations",
+      "expected_document_ids": [
+        "8ce6f085-6eac-565c-b915-fc44ba346f94"
+      ],
+      "retrieved": [
+        {
+          "project_id": "ff8b2fca-4983-4ac1-8fcc-ca85ff088617",
+          "document_id": "8ce6f085-6eac-565c-b915-fc44ba346f94",
+          "citation": "8ce6f085-6eac-565c-b915-fc44ba346f94:1",
+          "title": "campus policy",
+          "text": "Conflicting reservations must be rejected. Restricted equipment cannot be issued without administrator approval.",
+          "score": 0.5941
+        },
+        {
+          "project_id": "ff8b2fca-4983-4ac1-8fcc-ca85ff088617",
+          "document_id": "4f8d4251-d753-5d11-8c48-a32e49e88897",
+          "citation": "4f8d4251-d753-5d11-8c48-a32e49e88897:1",
+          "title": "library policy",
+          "text": "Reservations expire after 48 hours. A student may have at most three active loans.",
+          "score": 0.1021
+        }
+      ],
+      "precision_at_k": 0.3333,
+      "recall_at_k": 1.0,
+      "reciprocal_rank": 1.0
+    }
+  ],
+  "definition": "Document-level ranking with deduplicated source IDs. Precision uses k even if fewer hits are returned. Labels are user-supplied relevance judgments.",
+  "limitations": [
+    "Five synthetic policies and lexically similar queries only; no claim of semantic search quality.",
+    "Human labels were defined before ranking. Repeat with paraphrased held-out queries and live embeddings for a semantic comparison."
+  ]
+}

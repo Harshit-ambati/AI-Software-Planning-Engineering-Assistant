@@ -6,6 +6,11 @@ def field(name, type="string", description="", required=True):
 
 
 def fixture(stage):
+    if stage == "blueprint":
+        return {
+            key: fixture(key)
+            for key in ("requirements", "architecture", "database", "apis", "implementation", "documentation")
+        }
     features = [
         ("Browse restaurants", "Customer", "View available restaurants and menus", "GET", "/restaurants", "Restaurant"),
         ("Place an order", "Customer", "Submit menu items and delivery address", "POST", "/orders", "Order"),

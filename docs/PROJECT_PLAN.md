@@ -45,3 +45,10 @@ evaluation requires a configured key and human-rated domain cases.
 No generated code execution, autonomous repository changes, deployment of user
 ideas or claims that demo fixtures are novel designs. Knowledge is untrusted
 context, not instructions. Keys stay on the backend. Exports are inert text/JSON.
+
+## Implemented advanced extension (v2.1)
+Audited requirement editing with optimistic concurrency; conservative change
+propagation; requirement-seeded revisions; endpoint-backed semantic and retrieved
+rule assessments; single-prompt/staged experiments with optional retrieval;
+timing/token metrics, human rating collection and labeled retrieval evaluation.
+See IMPROVEMENTS.md. Live quality claims remain contingent on actual model trials.

@@ -51,6 +51,40 @@ export function ValidationView({ report }: { report: Report }) {
           </p>
         </div>
       </div>
+      <section className="artifact-section">
+        <h3>Business-behavior review</h3>
+        <p className="muted">
+          Automated semantic coverage:{' '}
+          {report.semantic_coverage_percent == null ? 'Not assessed' : `${report.semantic_coverage_percent}%`}
+          . This is a reviewer judgment, not proof of correctness.
+        </p>
+        {report.semantic_assessments?.map((item) => (
+          <div className="finding" key={item.requirement_id}>
+            <span className="tag">{item.status}</span>
+            <div>
+              <strong>
+                {item.requirement_id} · {item.endpoint_ids.join(', ') || 'No endpoint evidence'}
+              </strong>
+              <p>{item.explanation}</p>
+            </div>
+          </div>
+        ))}
+      </section>
+      {!!report.source_assessments?.length && (
+        <section className="artifact-section">
+          <h3>Retrieved-rule conformance</h3>
+          {report.source_assessments.map((item) => (
+            <div className="finding" key={item.citation}>
+              <span className="tag">{item.status}</span>
+              <div>
+                <code>{item.citation}</code>
+                <p>{item.explanation}</p>
+                <small>{[...item.requirement_ids, ...item.endpoint_ids].join(', ')}</small>
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
       {report.findings.map((finding, i) => (
         <div className="finding" key={i}>
           <span className={'status ' + finding.severity}>{finding.severity}</span>

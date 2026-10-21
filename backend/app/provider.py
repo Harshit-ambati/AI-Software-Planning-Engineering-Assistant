@@ -9,10 +9,10 @@ from google.genai import errors, types
 from pydantic import ValidationError
 
 from .demo import fixture
-from .models import SCHEMAS
+from .models import SCHEMAS, Blueprint
 
 PROMPTS = Path(__file__).parent / "prompts"
-PROMPT_VERSION = "2.0.0"
+PROMPT_VERSION = "2.1.0"
 
 
 class Provider:
@@ -29,7 +29,7 @@ class Provider:
         return self.settings.gemini_model if self.settings.ai_provider == "gemini" else "food-delivery-fixture-v2"
 
     def generate(self, stage, context):
-        schema = SCHEMAS[stage]
+        schema = Blueprint if stage == "blueprint" else SCHEMAS[stage]
         system = (PROMPTS / "system.md").read_text(encoding="utf-8")
         instruction = (PROMPTS / f"{stage}.md").read_text(encoding="utf-8")
         prompt_hash = hashlib.sha256((system + instruction).encode()).hexdigest()[:16]
@@ -39,6 +39,7 @@ class Provider:
             prompt_hash=prompt_hash,
             input_tokens=0,
             output_tokens=0,
+            reasoning_tokens=0,
             attempts=1,
         )
         if self.settings.ai_provider == "demo":
@@ -57,12 +58,13 @@ class Provider:
                         temperature=0.2,
                         response_mime_type="application/json",
                         response_json_schema=schema.model_json_schema(),
-                        max_output_tokens=12000,
+                        max_output_tokens=24000 if stage == "blueprint" else 12000,
                     ),
                 )
                 if response.usage_metadata:
                     meta["input_tokens"] += response.usage_metadata.prompt_token_count or 0
                     meta["output_tokens"] += response.usage_metadata.candidates_token_count or 0
+                    meta["reasoning_tokens"] += getattr(response.usage_metadata, "thoughts_token_count", 0) or 0
                 return schema.model_validate_json(response.text or "").model_dump(), meta
             except ValidationError as exc:
                 if attempt == 2:

@@ -36,7 +36,7 @@ class Memory:
             self.client.upsert(collection_name=self.collection, points=points, wait=True)
         return len(points)
 
-    def search(self, project_id, query, limit=4):
+    def search(self, project_id, query, limit=4, unique_documents=False):
         if not self.store.knowledge(project_id):
             return []
         vector = self.provider.embed(query, query=True)
@@ -47,16 +47,24 @@ class Memory:
                 query_filter=models.Filter(
                     must=[models.FieldCondition(key="project_id", match=models.MatchValue(value=project_id))]
                 ),
-                limit=limit,
+                limit=min(300, limit * 30) if unique_documents else limit,
                 score_threshold=0.08,
             )
         # SQL documents are authoritative: ignore orphaned vector points.
         valid = {doc["id"] for doc in self.store.knowledge(project_id)}
-        return [
+        hits = [
             dict(point.payload) | {"score": round(point.score, 4)}
             for point in result.points
             if point.payload["document_id"] in valid
         ]
+        if unique_documents:
+            selected, seen = [], set()
+            for hit in hits:
+                if hit["document_id"] not in seen:
+                    selected.append(hit)
+                    seen.add(hit["document_id"])
+            return selected[:limit]
+        return hits
 
     def close(self):
         self.client.close()

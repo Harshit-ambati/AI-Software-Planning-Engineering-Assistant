@@ -4,7 +4,7 @@ import re
 from collections import Counter
 
 
-def validate(artifacts, critique=None):
+def validate(artifacts, critique=None, sources=None, expected_semantics=False):
     findings = []
 
     def issue(rule, artifact, reference, message, severity="error"):
@@ -113,8 +113,93 @@ def validate(artifacts, critique=None):
         visit(task)
     if critique:
         findings.extend(critique["findings"])
+    assessments = (critique or {}).get("assessments", [])
+    source_assessments = (critique or {}).get("source_assessments", [])
+    endpoint_map = {endpoint["id"]: endpoint for endpoint in groups["apis"]}
+    accepted, seen = [], set()
+    for assessment in assessments:
+        ref = assessment["requirement_id"]
+        ids = assessment["endpoint_ids"]
+        valid = ref in reqs and ref not in seen and all(key in endpoint_map for key in ids)
+        if assessment["status"] == "satisfied":
+            valid = (
+                valid
+                and bool(ids)
+                and any(ref in endpoint_map[key]["requirement_ids"] for key in ids if key in endpoint_map)
+            )
+        seen.add(ref)
+        if not valid:
+            issue(
+                "INVALID_REVIEW_EVIDENCE",
+                "validation",
+                ref,
+                "Semantic review contains duplicate/unknown references or unsupported satisfaction claims.",
+            )
+            continue
+        accepted.append(assessment)
+        if assessment["status"] != "satisfied":
+            issue(
+                "SEMANTIC_GAP",
+                "apis",
+                ref,
+                assessment["explanation"],
+                "error" if assessment["status"] == "missing" else "warning",
+            )
+    if expected_semantics:
+        missing = reqs - {a["requirement_id"] for a in accepted}
+        if missing:
+            issue(
+                "SEMANTIC_REVIEW_INCOMPLETE",
+                "validation",
+                ", ".join(sorted(missing)),
+                "Not every requirement has a valid behavior assessment.",
+                "warning",
+            )
+    citations = {source["citation"] for source in (sources or [])}
+    accepted_sources, seen_sources = [], set()
+    for assessment in source_assessments:
+        citation = assessment["citation"]
+        valid = (
+            citation in citations
+            and citation not in seen_sources
+            and set(assessment["requirement_ids"]) <= reqs
+            and set(assessment["endpoint_ids"]) <= endpoint_map.keys()
+        )
+        if assessment["status"] in ("compliant", "conflict"):
+            valid = valid and bool(assessment["requirement_ids"] or assessment["endpoint_ids"])
+        seen_sources.add(citation)
+        if not valid:
+            issue(
+                "INVALID_SOURCE_EVIDENCE",
+                "validation",
+                citation,
+                "Source review cites missing evidence or unknown blueprint references.",
+            )
+            continue
+        accepted_sources.append(assessment)
+        if assessment["status"] in ("conflict", "uncertain"):
+            issue(
+                "SOURCE_CONFLICT" if assessment["status"] == "conflict" else "SOURCE_UNCERTAIN",
+                "validation",
+                citation,
+                assessment["explanation"],
+                "error" if assessment["status"] == "conflict" else "warning",
+            )
+    if expected_semantics and citations - {s["citation"] for s in accepted_sources}:
+        issue(
+            "SOURCE_REVIEW_INCOMPLETE",
+            "validation",
+            "",
+            "Some retrieved source passages have no valid conformance review.",
+            "warning",
+        )
     covered = sum(bool(row["architecture"] and row["apis"] and row["implementation"]) for row in coverage)
     return dict(
+        semantic_assessments=accepted,
+        semantic_coverage_percent=round(100 * sum(a["status"] == "satisfied" for a in accepted) / len(reqs))
+        if accepted and reqs
+        else None,
+        source_assessments=accepted_sources,
         status="needs_attention" if findings else "passed",
         findings=findings,
         coverage=coverage,

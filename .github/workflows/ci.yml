@@ -14,6 +14,7 @@ jobs:
       - run: python -m ruff check backend
       - run: python -m pytest -q
       - run: python scripts/evaluate_validator.py
+      - run: python scripts/evaluate_retrieval.py
   frontend:
     runs-on: ubuntu-latest
     defaults:

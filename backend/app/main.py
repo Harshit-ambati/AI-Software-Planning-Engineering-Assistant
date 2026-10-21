@@ -7,9 +7,20 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
 from .config import Settings
+from .evaluation import evaluate_retrieval, run_metrics
 from .exports import compare, json_export, markdown, openapi
+from .impact import analyze_impact
 from .memory import Memory
-from .models import CreateProject, CreateRun, KnowledgeInput, SearchInput
+from .models import (
+    CreateProject,
+    CreateRun,
+    EditRequirements,
+    ImpactInput,
+    KnowledgeInput,
+    RatingInput,
+    RetrievalEvaluation,
+    SearchInput,
+)
 from .provider import Provider
 from .store import Store, uid
 from .workflow import Workflow
@@ -32,7 +43,7 @@ def create_app(settings=None):
         if provider.client:
             provider.client.close()
 
-    app = FastAPI(title="Engineering Blueprint API", version="2.0.0", lifespan=lifespan)
+    app = FastAPI(title="Engineering Blueprint API", version="2.1.0", lifespan=lifespan)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.allowed_origins.split(","),
@@ -77,7 +88,7 @@ def create_app(settings=None):
 
     @app.get("/health")
     def health():
-        return {"status": "ok", "version": "2.0.0"}
+        return {"status": "ok", "version": "2.1.0"}
 
     @api.get("/config")
     def config():
@@ -107,12 +118,83 @@ def create_app(settings=None):
     def add_run(project_id: str, payload: CreateRun):
         project(project_id)
         ready()
+        if payload.strategy == "single_prompt" and (payload.review_required or payload.requirements_seed is not None):
+            raise HTTPException(
+                422, "A single-prompt experiment requires review_required=false and no requirement seed."
+            )
+        if payload.requirements_seed is not None and not payload.parent_run_id:
+            raise HTTPException(422, "A requirement-seeded revision requires a parent revision.")
+        if payload.parent_run_id:
+            parent = run(payload.parent_run_id)
+            if parent["project_id"] != project_id:
+                raise HTTPException(400, "Parent revision must belong to this project.")
         try:
             value = store().create_run(project_id, payload, settings.ai_provider, app.state.provider.model)
         except ValueError as exc:
             raise HTTPException(409, str(exc)) from None
         app.state.workflow.enqueue(value["id"])
         return value
+
+    @api.post("/runs/{run_id}/review/requirements")
+    def edit_requirements(run_id: str, payload: EditRequirements):
+        run(run_id)
+        try:
+            store().edit_requirements(run_id, payload)
+        except ValueError as exc:
+            raise HTTPException(409, str(exc)) from None
+        return run(run_id)
+
+    @api.get("/runs/{run_id}/review/history")
+    def review_history(run_id: str):
+        run(run_id)
+        return store().review_history(run_id)
+
+    @api.post("/runs/{run_id}/analysis/impact")
+    def impact(run_id: str, payload: ImpactInput):
+        value = run(run_id)
+        if "requirements" not in value["artifacts"]:
+            raise HTTPException(409, "Requirements are not available yet.")
+        return analyze_impact(value["artifacts"], payload.requirements.model_dump())
+
+    @api.get("/projects/{project_id}/evaluations")
+    def evaluations(project_id: str):
+        owner = project(project_id)
+        return dict(
+            runs=[run_metrics(run(item["id"]), store().ratings(item["id"])) for item in owner["runs"]],
+            retrieval=store().evaluations(project_id),
+        )
+
+    @api.get("/runs/{run_id}/evaluation/ratings")
+    def ratings(run_id: str):
+        run(run_id)
+        return store().ratings(run_id)
+
+    @api.post("/runs/{run_id}/evaluation/ratings", status_code=201)
+    def rate(run_id: str, payload: RatingInput):
+        value = run(run_id)
+        if value["status"] not in ("passed", "needs_attention"):
+            raise HTTPException(409, "Rate a completed revision.")
+        store().rate(run_id, payload)
+        return store().ratings(run_id)
+
+    @api.post("/projects/{project_id}/evaluation/retrieval", status_code=201)
+    def retrieval_evaluation(project_id: str, payload: RetrievalEvaluation):
+        project(project_id)
+        ready()
+        valid = {doc["id"] for doc in store().knowledge(project_id)}
+        if any(
+            not set(q.expected_document_ids) <= valid
+            or len(set(q.expected_document_ids)) != len(q.expected_document_ids)
+            for q in payload.queries
+        ):
+            raise HTTPException(422, "Expected documents must be unique and belong to this project's source library.")
+        try:
+            result = evaluate_retrieval(app.state.memory, project_id, payload, app.state.provider)
+        except Exception:
+            raise HTTPException(
+                502, "Retrieval evaluation failed. Check the embedding provider and vector index."
+            ) from None
+        return store().save_evaluation(project_id, "retrieval", payload.model_dump(), result)
 
     @api.get("/runs/{run_id}")
     def get_run(run_id: str):
@@ -187,7 +269,9 @@ def create_app(settings=None):
         after, before = run(run_id), run(before_id)
         if after["project_id"] != before["project_id"]:
             raise HTTPException(400, "Compare revisions within the same project.")
-        return compare(before, after)
+        return compare(before, after) | {
+            "impact": analyze_impact(before["artifacts"], after["artifacts"].get("requirements", {}))
+        }
 
     @api.get("/runs/{run_id}/export/{format}")
     def export(run_id: str, format: Literal["json", "markdown", "openapi"]):

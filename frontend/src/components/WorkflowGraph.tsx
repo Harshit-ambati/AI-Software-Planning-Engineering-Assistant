@@ -35,7 +35,7 @@ export default function WorkflowGraph({
     <div className="graph" aria-label="Interactive seven-stage engineering workflow">
       <ReactFlow
         nodes={nodes}
-        edges={edges}
+        edges={run?.strategy === 'single_prompt' ? [] : edges}
         fitView
         nodesDraggable={false}
         nodesConnectable={false}
